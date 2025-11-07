@@ -1,0 +1,42 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Package {
+  id              String          @id @default(cuid())
+  trackingNumber  String          @unique
+  description     String?
+  status          String
+  currentLocation String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  trackingUpdates TrackingUpdate[]
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+}
+
+model TrackingUpdate {
+  id          String    @id @default(cuid())
+  status      String
+  location    String?
+  timestamp   DateTime  @default(now())
+  notes       String?
+  packageId   String
+  package     Package   @relation(fields: [packageId], references: [id])
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String?
+  role        String    @default("USER")
+  packages    Package[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
