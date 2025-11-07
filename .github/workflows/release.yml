@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.x'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            git log --pretty=format:"* %s (%h)" > CHANGELOG.md
+          else
+            git log --pretty=format:"* %s (%h)" $PREVIOUS_TAG..HEAD > CHANGELOG.md
+          fi
+          echo "::set-output name=version::${GITHUB_REF#refs/tags/}"
+          
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.changelog.outputs.version }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
